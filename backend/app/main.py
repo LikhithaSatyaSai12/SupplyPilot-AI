@@ -2,13 +2,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import pandas as pd
+from pathlib import Path
+
+from app.services.ml_service import predict_risk
+
+
 app = FastAPI(
     title="SupplyPilot-AI API",
     description="Backend API for SupplyPilot-AI",
     version="1.0.0"
 )
 
-# Allow frontend to connect to backend
+
+# --------------------------------------------------
+# CORS - Allow React frontend to connect
+# --------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -26,17 +36,31 @@ app.add_middleware(
 )
 
 
-# Request model
+# --------------------------------------------------
+# Request models
+# --------------------------------------------------
+
 class PredictionRequest(BaseModel):
     supplier: str
     quantity: float
 
 
-# Store prediction history
+class RecommendationRequest(BaseModel):
+    supplier: str
+    quantity: float
+
+
+# --------------------------------------------------
+# History
+# --------------------------------------------------
+
 history = []
 
 
-# Home / health check
+# --------------------------------------------------
+# Root endpoint
+# --------------------------------------------------
+
 @app.get("/")
 def root():
     return {
@@ -45,79 +69,149 @@ def root():
     }
 
 
-# Prediction endpoint
+# --------------------------------------------------
+# Prediction endpoint - XGBoost
+# --------------------------------------------------
+
 @app.post("/predict")
-def predict_risk(data: PredictionRequest):
+def predict(data: PredictionRequest):
 
-    if data.quantity > 500:
-        risk = "High"
-    elif data.quantity > 100:
-        risk = "Medium"
+    dataset_path = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "raw"
+        / "supply_chain_data.csv"
+    )
+
+    df = pd.read_csv(dataset_path)
+
+    # Find supplier in the Kaggle dataset
+    supplier_rows = df[
+        df["Supplier name"].astype(str).str.lower()
+        == data.supplier.lower()
+    ]
+
+    # If supplier isn't found, use the first available row
+    if supplier_rows.empty:
+        supplier_row = df.iloc[0]
     else:
-        risk = "Low"
+        supplier_row = supplier_rows.iloc[0]
 
-    result = {
+    # Prepare the 16 features expected by XGBoost
+    features = {
+        "Price": supplier_row["Price"],
+        "Availability": supplier_row["Availability"],
+        "Number of products sold": supplier_row["Number of products sold"],
+        "Revenue generated": supplier_row["Revenue generated"],
+        "Stock levels": supplier_row["Stock levels"],
+        "Lead times": supplier_row["Lead times"],
+        "Order quantities": data.quantity,
+        "Shipping times": supplier_row["Shipping times"],
+        "Shipping costs": supplier_row["Shipping costs"],
+        "Lead time": supplier_row["Lead time"],
+        "Production volumes": supplier_row["Production volumes"],
+        "Manufacturing lead time": supplier_row["Manufacturing lead time"],
+        "Manufacturing costs": supplier_row["Manufacturing costs"],
+        "Defect rates": supplier_row["Defect rates"],
+        "Costs": supplier_row["Costs"],
+    }
+
+    # Predict using trained XGBoost model
+    risk = predict_risk(features)
+
+    # Save to history
+    history.append({
+        "supplier": data.supplier,
+        "quantity": data.quantity,
+        "risk": risk
+    })
+
+    return {
         "supplier": data.supplier,
         "quantity": data.quantity,
         "risk": risk
     }
 
-    # Save prediction to history
-    history.append(result)
 
-    return result
-
-
+# --------------------------------------------------
 # Recommendation endpoint
+# --------------------------------------------------
+
 @app.post("/recommendations")
-def recommendations(data: PredictionRequest):
+def recommendations(data: RecommendationRequest):
 
-    if data.quantity > 500:
-        risk = "High"
-        recommendation = (
-            "Consider splitting the order and monitoring "
-            "the supplier closely."
-        )
+    dataset_path = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "raw"
+        / "supply_chain_data.csv"
+    )
 
-    elif data.quantity > 100:
-        risk = "Medium"
-        recommendation = (
-            "Confirm the supplier schedule and monitor "
-            "the shipment."
-        )
+    df = pd.read_csv(dataset_path)
 
+    supplier_rows = df[
+        df["Supplier name"].astype(str).str.lower()
+        == data.supplier.lower()
+    ]
+
+    if supplier_rows.empty:
+        supplier_row = df.iloc[0]
     else:
-        risk = "Low"
+        supplier_row = supplier_rows.iloc[0]
+
+    features = {
+        "Price": supplier_row["Price"],
+        "Availability": supplier_row["Availability"],
+        "Number of products sold": supplier_row["Number of products sold"],
+        "Revenue generated": supplier_row["Revenue generated"],
+        "Stock levels": supplier_row["Stock levels"],
+        "Lead times": supplier_row["Lead times"],
+        "Order quantities": data.quantity,
+        "Shipping times": supplier_row["Shipping times"],
+        "Shipping costs": supplier_row["Shipping costs"],
+        "Lead time": supplier_row["Lead time"],
+        "Production volumes": supplier_row["Production volumes"],
+        "Manufacturing lead time": supplier_row["Manufacturing lead time"],
+        "Manufacturing costs": supplier_row["Manufacturing costs"],
+        "Defect rates": supplier_row["Defect rates"],
+        "Costs": supplier_row["Costs"],
+    }
+
+    risk = predict_risk(features)
+
+    # Generate recommendation from predicted risk
+    if risk == "High":
         recommendation = (
-            "Proceed with the order and maintain normal monitoring."
+            "Consider an alternative supplier and closely monitor the shipment."
+        )
+    elif risk == "Medium":
+        recommendation = (
+            "Confirm the supplier schedule and monitor the shipment."
+        )
+    else:
+        recommendation = (
+            "Supplier appears reliable. Proceed with normal monitoring."
         )
 
-    result = {
+    # Save to history
+    history.append({
+        "supplier": data.supplier,
+        "quantity": data.quantity,
+        "risk": risk
+    })
+
+    return {
         "supplier": data.supplier,
         "quantity": data.quantity,
         "risk": risk,
         "recommendation": recommendation
     }
 
-    # Save recommendation to history
-    history.append(result)
 
-    return result
-
-
+# --------------------------------------------------
 # History endpoint
+# --------------------------------------------------
+
 @app.get("/history")
 def get_history():
     return history
-
-
-# Run the application directly
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "app.main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True
-    )
