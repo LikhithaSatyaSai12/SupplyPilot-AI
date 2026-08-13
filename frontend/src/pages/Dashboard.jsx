@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import StatCard from "../components/StatCard";
 import API from "../services/api";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 function Dashboard() {
   const [history, setHistory] = useState([]);
@@ -41,6 +49,21 @@ function Dashboard() {
     (item) => item.risk === "Low"
   ).length;
 
+  const riskData = [
+    {
+      name: "High",
+      value: highRisk,
+    },
+    {
+      name: "Medium",
+      value: mediumRisk,
+    },
+    {
+      name: "Low",
+      value: lowRisk,
+    },
+  ];
+
   const latestDecision =
     history.length > 0 ? history[0] : null;
 
@@ -58,6 +81,7 @@ function Dashboard() {
 
       {!loading && !error && (
         <>
+          {/* Statistics */}
           <div
             style={{
               display: "flex",
@@ -87,32 +111,49 @@ function Dashboard() {
             />
           </div>
 
+          {/* Risk Chart */}
           <div
             style={{
               marginTop: "40px",
               padding: "20px",
               border: "1px solid #ddd",
               borderRadius: "8px",
+              maxWidth: "600px",
             }}
           >
             <h2>Risk Distribution</h2>
 
-            <p>
-              <strong>High Risk:</strong>{" "}
-              {highRisk}
-            </p>
+            {totalDecisions === 0 ? (
+              <p>No risk data available.</p>
+            ) : (
+              <ResponsiveContainer
+                width="100%"
+                height={350}
+              >
+                <PieChart>
+                  <Pie
+                    data={riskData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    label
+                  >
+                    {riskData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} />
+                    ))}
+                  </Pie>
 
-            <p>
-              <strong>Medium Risk:</strong>{" "}
-              {mediumRisk}
-            </p>
+                  <Tooltip />
 
-            <p>
-              <strong>Low Risk:</strong>{" "}
-              {lowRisk}
-            </p>
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
+          {/* Latest Decision */}
           {latestDecision && (
             <div
               style={{
