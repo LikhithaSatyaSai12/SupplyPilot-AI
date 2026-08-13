@@ -77,6 +77,34 @@ def root():
 
 
 # --------------------------------------------------
+# Suppliers endpoint
+# --------------------------------------------------
+
+@app.get("/suppliers")
+def get_suppliers():
+
+    dataset_path = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "raw"
+        / "supply_chain_data.csv"
+    )
+
+    df = pd.read_csv(dataset_path)
+
+    suppliers = (
+        df["Supplier name"]
+        .astype(str)
+        .str.strip()
+        .drop_duplicates()
+        .sort_values()
+        .tolist()
+    )
+
+    return suppliers
+
+
+# --------------------------------------------------
 # Prediction endpoint - XGBoost
 # --------------------------------------------------
 
@@ -95,13 +123,16 @@ def predict(data: PredictionRequest):
     # Clean supplier name
     supplier_name = data.supplier.strip()
 
-    # Find supplier in the dataset
+    # Find supplier in dataset
     supplier_rows = df[
-        df["Supplier name"].astype(str).str.strip().str.lower()
+        df["Supplier name"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
         == supplier_name.lower()
     ]
 
-    # If supplier is not found, use the first available row
+    # If supplier is not found, use first available row
     if supplier_rows.empty:
         supplier_row = df.iloc[0]
     else:
@@ -173,13 +204,16 @@ def recommendations(data: RecommendationRequest):
     # Clean supplier name
     supplier_name = data.supplier.strip()
 
-    # Find supplier in the dataset
+    # Find supplier in dataset
     supplier_rows = df[
-        df["Supplier name"].astype(str).str.strip().str.lower()
+        df["Supplier name"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
         == supplier_name.lower()
     ]
 
-    # If supplier is not found, use the first available row
+    # If supplier is not found, use first available row
     if supplier_rows.empty:
         supplier_row = df.iloc[0]
     else:
