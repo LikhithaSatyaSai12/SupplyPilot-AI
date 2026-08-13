@@ -5,6 +5,7 @@ function DecisionHistory() {
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     loadHistory();
@@ -13,6 +14,7 @@ function DecisionHistory() {
   const loadHistory = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const response = await API.get("/history");
 
@@ -22,6 +24,32 @@ function DecisionHistory() {
       setError("Could not load decision history.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this decision?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      setError("");
+
+      await API.delete(`/history/${id}`);
+
+      setHistory((currentHistory) =>
+        currentHistory.filter((item) => item.id !== id)
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Could not delete this decision.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -41,12 +69,12 @@ function DecisionHistory() {
         <p>No history available.</p>
       )}
 
-      {!loading && !error && history.length > 0 && (
+      {!loading && history.length > 0 && (
         <table
           style={{
             margin: "20px auto",
             borderCollapse: "collapse",
-            width: "95%",
+            width: "98%",
           }}
         >
           <thead>
@@ -57,6 +85,7 @@ function DecisionHistory() {
               <th style={cellStyle}>Risk</th>
               <th style={cellStyle}>Recommendation</th>
               <th style={cellStyle}>Timestamp</th>
+              <th style={cellStyle}>Action</th>
             </tr>
           </thead>
 
@@ -64,11 +93,37 @@ function DecisionHistory() {
             {history.map((item) => (
               <tr key={item.id}>
                 <td style={cellStyle}>{item.id}</td>
-                <td style={cellStyle}>{item.supplier}</td>
-                <td style={cellStyle}>{item.quantity}</td>
-                <td style={cellStyle}>{item.risk}</td>
-                <td style={cellStyle}>{item.recommendation}</td>
-                <td style={cellStyle}>{item.timestamp}</td>
+
+                <td style={cellStyle}>
+                  {item.supplier}
+                </td>
+
+                <td style={cellStyle}>
+                  {item.quantity}
+                </td>
+
+                <td style={cellStyle}>
+                  {item.risk}
+                </td>
+
+                <td style={cellStyle}>
+                  {item.recommendation}
+                </td>
+
+                <td style={cellStyle}>
+                  {item.timestamp}
+                </td>
+
+                <td style={cellStyle}>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deletingId === item.id}
+                  >
+                    {deletingId === item.id
+                      ? "Deleting..."
+                      : "Delete"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
