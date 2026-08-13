@@ -7,7 +7,20 @@ from pathlib import Path
 from datetime import datetime
 
 from app.services.ml_service import predict_risk
+from app.database import SessionLocal, Base, engine
+from app.models import DecisionHistory
 
+
+# --------------------------------------------------
+# Create database tables
+# --------------------------------------------------
+
+Base.metadata.create_all(bind=engine)
+
+
+# --------------------------------------------------
+# FastAPI application
+# --------------------------------------------------
 
 app = FastAPI(
     title="SupplyPilot-AI API",
@@ -52,13 +65,6 @@ class RecommendationRequest(BaseModel):
 
 
 # --------------------------------------------------
-# History
-# --------------------------------------------------
-
-history = []
-
-
-# --------------------------------------------------
 # Root endpoint
 # --------------------------------------------------
 
@@ -86,10 +92,13 @@ def predict(data: PredictionRequest):
 
     df = pd.read_csv(dataset_path)
 
+    # Clean supplier name
+    supplier_name = data.supplier.strip()
+
     # Find supplier in the dataset
     supplier_rows = df[
-        df["Supplier name"].astype(str).str.lower()
-        == data.supplier.lower()
+        df["Supplier name"].astype(str).str.strip().str.lower()
+        == supplier_name.lower()
     ]
 
     # If supplier is not found, use the first available row
@@ -120,17 +129,26 @@ def predict(data: PredictionRequest):
     # Predict using trained XGBoost model
     risk = predict_risk(features)
 
-    # Save prediction to history
-    history.append({
-        "supplier": data.supplier,
-        "quantity": data.quantity,
-        "risk": risk,
-        "recommendation": "Prediction generated.",
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
+    # Save prediction to SQLite database
+    db = SessionLocal()
+
+    try:
+        history_record = DecisionHistory(
+            supplier=supplier_name,
+            quantity=data.quantity,
+            risk=risk,
+            recommendation="Prediction generated.",
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        db.add(history_record)
+        db.commit()
+
+    finally:
+        db.close()
 
     return {
-        "supplier": data.supplier,
+        "supplier": supplier_name,
         "quantity": data.quantity,
         "risk": risk
     }
@@ -152,10 +170,13 @@ def recommendations(data: RecommendationRequest):
 
     df = pd.read_csv(dataset_path)
 
+    # Clean supplier name
+    supplier_name = data.supplier.strip()
+
     # Find supplier in the dataset
     supplier_rows = df[
-        df["Supplier name"].astype(str).str.lower()
-        == data.supplier.lower()
+        df["Supplier name"].astype(str).str.strip().str.lower()
+        == supplier_name.lower()
     ]
 
     # If supplier is not found, use the first available row
@@ -191,26 +212,37 @@ def recommendations(data: RecommendationRequest):
         recommendation = (
             "Consider an alternative supplier and closely monitor the shipment."
         )
+
     elif risk == "Medium":
         recommendation = (
             "Confirm the supplier schedule and monitor the shipment."
         )
+
     else:
         recommendation = (
             "Supplier appears reliable. Proceed with normal monitoring."
         )
 
-    # Save recommendation to history
-    history.append({
-        "supplier": data.supplier,
-        "quantity": data.quantity,
-        "risk": risk,
-        "recommendation": recommendation,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
+    # Save recommendation to SQLite database
+    db = SessionLocal()
+
+    try:
+        history_record = DecisionHistory(
+            supplier=supplier_name,
+            quantity=data.quantity,
+            risk=risk,
+            recommendation=recommendation,
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        db.add(history_record)
+        db.commit()
+
+    finally:
+        db.close()
 
     return {
-        "supplier": data.supplier,
+        "supplier": supplier_name,
         "quantity": data.quantity,
         "risk": risk,
         "recommendation": recommendation
@@ -221,6 +253,29 @@ def recommendations(data: RecommendationRequest):
 # History endpoint
 # --------------------------------------------------
 
-@app.get("/history", response_model=list[dict])
+@app.get("/history")
 def get_history():
-    return history
+
+    db = SessionLocal()
+
+    try:
+        records = (
+            db.query(DecisionHistory)
+            .order_by(DecisionHistory.id.desc())
+            .all()
+        )
+
+        return [
+            {
+                "id": record.id,
+                "supplier": record.supplier,
+                "quantity": record.quantity,
+                "risk": record.risk,
+                "recommendation": record.recommendation,
+                "timestamp": record.timestamp
+            }
+            for record in records
+        ]
+
+    finally:
+        db.close()
