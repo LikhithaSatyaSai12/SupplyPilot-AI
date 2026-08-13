@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 
 from app.services.ml_service import predict_risk
 
@@ -85,19 +86,19 @@ def predict(data: PredictionRequest):
 
     df = pd.read_csv(dataset_path)
 
-    # Find supplier in the Kaggle dataset
+    # Find supplier in the dataset
     supplier_rows = df[
         df["Supplier name"].astype(str).str.lower()
         == data.supplier.lower()
     ]
 
-    # If supplier isn't found, use the first available row
+    # If supplier is not found, use the first available row
     if supplier_rows.empty:
         supplier_row = df.iloc[0]
     else:
         supplier_row = supplier_rows.iloc[0]
 
-    # Prepare the 16 features expected by XGBoost
+    # Prepare features expected by XGBoost
     features = {
         "Price": supplier_row["Price"],
         "Availability": supplier_row["Availability"],
@@ -119,11 +120,13 @@ def predict(data: PredictionRequest):
     # Predict using trained XGBoost model
     risk = predict_risk(features)
 
-    # Save to history
+    # Save prediction to history
     history.append({
         "supplier": data.supplier,
         "quantity": data.quantity,
-        "risk": risk
+        "risk": risk,
+        "recommendation": "Prediction generated.",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
     return {
@@ -149,16 +152,19 @@ def recommendations(data: RecommendationRequest):
 
     df = pd.read_csv(dataset_path)
 
+    # Find supplier in the dataset
     supplier_rows = df[
         df["Supplier name"].astype(str).str.lower()
         == data.supplier.lower()
     ]
 
+    # If supplier is not found, use the first available row
     if supplier_rows.empty:
         supplier_row = df.iloc[0]
     else:
         supplier_row = supplier_rows.iloc[0]
 
+    # Prepare features expected by XGBoost
     features = {
         "Price": supplier_row["Price"],
         "Availability": supplier_row["Availability"],
@@ -177,9 +183,10 @@ def recommendations(data: RecommendationRequest):
         "Costs": supplier_row["Costs"],
     }
 
+    # Predict risk
     risk = predict_risk(features)
 
-    # Generate recommendation from predicted risk
+    # Generate recommendation
     if risk == "High":
         recommendation = (
             "Consider an alternative supplier and closely monitor the shipment."
@@ -193,11 +200,13 @@ def recommendations(data: RecommendationRequest):
             "Supplier appears reliable. Proceed with normal monitoring."
         )
 
-    # Save to history
+    # Save recommendation to history
     history.append({
         "supplier": data.supplier,
         "quantity": data.quantity,
-        "risk": risk
+        "risk": risk,
+        "recommendation": recommendation,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
     return {
@@ -212,6 +221,6 @@ def recommendations(data: RecommendationRequest):
 # History endpoint
 # --------------------------------------------------
 
-@app.get("/history")
+@app.get("/history", response_model=list[dict])
 def get_history():
     return history
