@@ -13,11 +13,13 @@ function DecisionHistory() {
   const loadHistory = async () => {
     try {
       setLoading(true);
+
       const response = await API.get("/history");
+
       setHistory(response.data);
     } catch (err) {
       console.error(err);
-      setError("Could not load history.");
+      setError("Could not load decision history.");
     } finally {
       setLoading(false);
     }
@@ -27,17 +29,19 @@ function DecisionHistory() {
     <div>
       <h1>Decision History</h1>
 
+      {loading && <p>Loading history...</p>}
+
       {error && (
         <p style={{ color: "red" }}>
           {error}
         </p>
       )}
 
-      {loading ? (
-        <p>Loading history...</p>
-      ) : history.length === 0 ? (
+      {!loading && !error && history.length === 0 && (
         <p>No history available.</p>
-      ) : (
+      )}
+
+      {!loading && !error && history.length > 0 && (
         <table
           style={{
             margin: "20px auto",
@@ -47,100 +51,24 @@ function DecisionHistory() {
         >
           <thead>
             <tr>
-              <th
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                Supplier
-              </th>
-
-              <th
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                Quantity
-              </th>
-
-              <th
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                Risk
-              </th>
-
-              <th
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                Recommendation
-              </th>
-
-              <th
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                Timestamp
-              </th>
+              <th style={cellStyle}>ID</th>
+              <th style={cellStyle}>Supplier</th>
+              <th style={cellStyle}>Quantity</th>
+              <th style={cellStyle}>Risk</th>
+              <th style={cellStyle}>Recommendation</th>
+              <th style={cellStyle}>Timestamp</th>
             </tr>
           </thead>
 
           <tbody>
-            {history.map((item, index) => (
-              <tr key={index}>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px",
-                  }}
-                >
-                  {item.supplier}
-                </td>
-
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px",
-                  }}
-                >
-                  {item.quantity}
-                </td>
-
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px",
-                  }}
-                >
-                  {item.risk}
-                </td>
-
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px",
-                  }}
-                >
-                  {item.recommendation}
-                </td>
-
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px",
-                  }}
-                >
-                  {item.timestamp}
-                </td>
+            {history.map((item) => (
+              <tr key={item.id}>
+                <td style={cellStyle}>{item.id}</td>
+                <td style={cellStyle}>{item.supplier}</td>
+                <td style={cellStyle}>{item.quantity}</td>
+                <td style={cellStyle}>{item.risk}</td>
+                <td style={cellStyle}>{item.recommendation}</td>
+                <td style={cellStyle}>{item.timestamp}</td>
               </tr>
             ))}
           </tbody>
@@ -149,5 +77,11 @@ function DecisionHistory() {
     </div>
   );
 }
+
+const cellStyle = {
+  border: "1px solid #ccc",
+  padding: "10px",
+  textAlign: "left",
+};
 
 export default DecisionHistory;
