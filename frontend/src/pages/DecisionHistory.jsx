@@ -53,6 +53,18 @@ function DecisionHistory() {
     }
   };
 
+  const getRiskColor = (risk) => {
+    if (risk === "High") {
+      return "red";
+    }
+
+    if (risk === "Medium") {
+      return "orange";
+    }
+
+    return "green";
+  };
+
   return (
     <div>
       <h1>Decision History</h1>
@@ -103,7 +115,14 @@ function DecisionHistory() {
                 </td>
 
                 <td style={cellStyle}>
-                  {item.risk}
+                  <span
+                    style={{
+                      fontWeight: "bold",
+                      color: getRiskColor(item.risk),
+                    }}
+                  >
+                    {item.risk}
+                  </span>
                 </td>
 
                 <td style={cellStyle}>
