@@ -17,6 +17,7 @@ function Prediction() {
   const loadSuppliers = async () => {
     try {
       setLoadingSuppliers(true);
+      setError("");
 
       const response = await API.get("/suppliers");
 
@@ -68,6 +69,18 @@ function Prediction() {
     }
   };
 
+  const getRiskColor = (risk) => {
+    if (risk === "High") {
+      return "red";
+    }
+
+    if (risk === "Medium") {
+      return "orange";
+    }
+
+    return "green";
+  };
+
   return (
     <div>
       <h1>Prediction</h1>
@@ -113,31 +126,57 @@ function Prediction() {
 
         <br />
 
-        <button type="submit" disabled={loading || loadingSuppliers}>
+        <button
+          type="submit"
+          disabled={loading || loadingSuppliers}
+        >
           {loading ? "Predicting..." : "Predict Risk"}
         </button>
       </form>
 
       {error && (
-        <p style={{ color: "red", marginTop: "20px" }}>
+        <p
+          style={{
+            color: "red",
+            marginTop: "20px",
+          }}
+        >
           {error}
         </p>
       )}
 
       {result && (
-        <div style={{ marginTop: "30px" }}>
+        <div
+          style={{
+            marginTop: "30px",
+            padding: "20px",
+            border: "1px solid #ddd",
+            borderRadius: "8px",
+            maxWidth: "500px",
+          }}
+        >
           <h2>Prediction Result</h2>
 
           <p>
-            <strong>Supplier:</strong> {result.supplier}
+            <strong>Supplier:</strong>{" "}
+            {result.supplier}
           </p>
 
           <p>
-            <strong>Quantity:</strong> {result.quantity}
+            <strong>Quantity:</strong>{" "}
+            {result.quantity}
           </p>
 
           <p>
-            <strong>Risk:</strong> {result.risk}
+            <strong>Risk:</strong>{" "}
+            <span
+              style={{
+                fontWeight: "bold",
+                color: getRiskColor(result.risk),
+              }}
+            >
+              {result.risk}
+            </span>
           </p>
         </div>
       )}
