@@ -1,40 +1,37 @@
 import { useEffect, useState } from "react";
-import API from "../services/api";
 
 function Recommendations() {
   const [suppliers, setSuppliers] = useState([]);
   const [supplier, setSupplier] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(250);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    loadSuppliers();
+    fetch("http://127.0.0.1:8000/suppliers")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load suppliers");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setSuppliers(data);
+
+        if (data.length > 0) {
+          setSupplier(data[0]);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Could not load suppliers from backend.");
+      });
   }, []);
 
-  const loadSuppliers = async () => {
-    try {
-      setLoadingSuppliers(true);
-      setError("");
-
-      const response = await API.get("/suppliers");
-
-      setSuppliers(response.data);
-    } catch (error) {
-      console.error(error);
-
-      setError(
-        "Could not load suppliers. Make sure FastAPI is running on port 8000."
-      );
-    } finally {
-      setLoadingSuppliers(false);
-    }
-  };
-
-  const handleRecommendation = async (e) => {
-    e.preventDefault();
+  const handleRecommendation = async (event) => {
+    event.preventDefault();
 
     setError("");
     setResult(null);
@@ -44,91 +41,111 @@ function Recommendations() {
       return;
     }
 
-    if (Number(quantity) <= 0) {
-      setError("Quantity must be greater than 0.");
-      return;
-    }
-
     try {
       setLoading(true);
 
-      const response = await API.post("/recommendations", {
-        supplier: supplier,
-        quantity: Number(quantity),
-      });
+      const response = await fetch(
+        "http://127.0.0.1:8000/recommendations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            supplier: supplier,
+            quantity: Number(quantity),
+          }),
+        }
+      );
 
-      setResult(response.data);
-    } catch (error) {
-      console.error(error);
+      if (!response.ok) {
+        throw new Error("Recommendation request failed");
+      }
 
+      const data = await response.json();
+
+      setResult(data);
+    } catch (err) {
+      console.error(err);
       setError(
-        "Backend connection failed. Make sure FastAPI is running on port 8000."
+        "Could not generate recommendation. Make sure FastAPI is running."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const getRiskColor = (risk) => {
-    if (risk === "High") {
-      return "red";
-    }
-
-    if (risk === "Medium") {
-      return "orange";
-    }
-
-    return "green";
-  };
-
   return (
-    <div>
-      <h1>Recommendations</h1>
+    <div style={{ padding: "40px", maxWidth: "900px" }}>
+      <h1>Supplier Recommendations</h1>
+
+      <p>
+        Get an AI-powered supplier risk assessment and recommendation.
+      </p>
 
       <form onSubmit={handleRecommendation}>
-        <div>
-          <label>Supplier</label>
+        <div style={{ marginTop: "25px" }}>
+          <label>
+            <strong>Supplier</strong>
+          </label>
+
           <br />
 
           <select
             value={supplier}
-            onChange={(e) => setSupplier(e.target.value)}
-            disabled={loadingSuppliers}
+            onChange={(event) => setSupplier(event.target.value)}
+            style={{
+              marginTop: "8px",
+              padding: "10px",
+              width: "100%",
+              maxWidth: "600px",
+            }}
           >
-            <option value="">
-              {loadingSuppliers
-                ? "Loading suppliers..."
-                : "Select a supplier"}
-            </option>
-
-            {suppliers.map((supplierName) => (
-              <option key={supplierName} value={supplierName}>
-                {supplierName}
-              </option>
-            ))}
+            {suppliers.length === 0 ? (
+              <option value="">Loading suppliers...</option>
+            ) : (
+              suppliers.map((item, index) => (
+                <option key={index} value={item}>
+                  {item}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
-        <br />
+        <div style={{ marginTop: "20px" }}>
+          <label>
+            <strong>Order Quantity</strong>
+          </label>
 
-        <div>
-          <label>Quantity</label>
           <br />
 
           <input
             type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder="Enter quantity"
             min="1"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            style={{
+              marginTop: "8px",
+              padding: "10px",
+              width: "100%",
+              maxWidth: "600px",
+            }}
           />
         </div>
 
-        <br />
-
         <button
           type="submit"
-          disabled={loading || loadingSuppliers}
+          disabled={loading}
+          style={{
+            marginTop: "25px",
+            padding: "12px 24px",
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "7px",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           {loading
             ? "Getting Recommendation..."
@@ -137,54 +154,48 @@ function Recommendations() {
       </form>
 
       {error && (
-        <p
+        <div
           style={{
-            color: "red",
-            marginTop: "20px",
+            marginTop: "25px",
+            padding: "15px",
+            background: "#fee2e2",
+            color: "#b91c1c",
+            borderRadius: "8px",
           }}
         >
           {error}
-        </p>
+        </div>
       )}
 
       {result && (
         <div
           style={{
             marginTop: "30px",
-            padding: "20px",
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            maxWidth: "600px",
+            padding: "25px",
+            background: "white",
+            border: "1px solid #d9e2ec",
+            borderRadius: "12px",
           }}
         >
           <h2>Recommendation Result</h2>
 
           <p>
-            <strong>Supplier:</strong>{" "}
-            {result.supplier}
+            <strong>Supplier:</strong> {result.supplier}
           </p>
 
           <p>
-            <strong>Quantity:</strong>{" "}
-            {result.quantity}
+            <strong>Quantity:</strong> {result.quantity}
           </p>
 
           <p>
-            <strong>Risk:</strong>{" "}
-            <span
-              style={{
-                fontWeight: "bold",
-                color: getRiskColor(result.risk),
-              }}
-            >
-              {result.risk}
-            </span>
+            <strong>Risk:</strong> {result.risk}
           </p>
 
           <p>
-            <strong>Recommendation:</strong>{" "}
-            {result.recommendation}
+            <strong>Recommendation:</strong>
           </p>
+
+          <p>{result.recommendation}</p>
         </div>
       )}
     </div>
