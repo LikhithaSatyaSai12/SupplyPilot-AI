@@ -17,12 +17,13 @@ function Dashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadHistory();
+    loadDashboard();
   }, []);
 
-  const loadHistory = async () => {
+  const loadDashboard = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const response = await API.get("/history");
 
@@ -51,21 +52,33 @@ function Dashboard() {
 
   const riskData = [
     {
-      name: "High",
+      name: "High Risk",
       value: highRisk,
     },
     {
-      name: "Medium",
+      name: "Medium Risk",
       value: mediumRisk,
     },
     {
-      name: "Low",
+      name: "Low Risk",
       value: lowRisk,
     },
   ];
 
   const latestDecision =
     history.length > 0 ? history[0] : null;
+
+  const getRiskColor = (risk) => {
+    if (risk === "High") {
+      return "red";
+    }
+
+    if (risk === "Medium") {
+      return "orange";
+    }
+
+    return "green";
+  };
 
   return (
     <MainLayout>
@@ -111,20 +124,21 @@ function Dashboard() {
             />
           </div>
 
-          {/* Risk Chart */}
+          {/* Risk Distribution */}
           <div
             style={{
               marginTop: "40px",
-              padding: "20px",
+              padding: "25px",
               border: "1px solid #ddd",
-              borderRadius: "8px",
-              maxWidth: "600px",
+              borderRadius: "10px",
+              maxWidth: "650px",
+              backgroundColor: "#fff",
             }}
           >
             <h2>Risk Distribution</h2>
 
             {totalDecisions === 0 ? (
-              <p>No risk data available.</p>
+              <p>No decision data available.</p>
             ) : (
               <ResponsiveContainer
                 width="100%"
@@ -158,9 +172,11 @@ function Dashboard() {
             <div
               style={{
                 marginTop: "30px",
-                padding: "20px",
+                padding: "25px",
                 border: "1px solid #ddd",
-                borderRadius: "8px",
+                borderRadius: "10px",
+                maxWidth: "650px",
+                backgroundColor: "#fff",
               }}
             >
               <h2>Latest Decision</h2>
@@ -177,7 +193,16 @@ function Dashboard() {
 
               <p>
                 <strong>Risk:</strong>{" "}
-                {latestDecision.risk}
+                <span
+                  style={{
+                    fontWeight: "bold",
+                    color: getRiskColor(
+                      latestDecision.risk
+                    ),
+                  }}
+                >
+                  {latestDecision.risk}
+                </span>
               </p>
 
               <p>
