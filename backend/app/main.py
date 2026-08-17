@@ -9,20 +9,21 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.services.ml_service import predict_risk
+from app.prescription_engine import generate_prescriptions
 from app.database import SessionLocal, Base, engine
 from app.models import DecisionHistory
 
 
-# --------------------------------------------------
-# Create database tables
-# --------------------------------------------------
+# ============================================================
+# CREATE DATABASE TABLES
+# ============================================================
 
 Base.metadata.create_all(bind=engine)
 
 
-# --------------------------------------------------
-# FastAPI application
-# --------------------------------------------------
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
 
 app = FastAPI(
     title="SupplyPilot-AI API",
@@ -31,9 +32,9 @@ app = FastAPI(
 )
 
 
-# --------------------------------------------------
+# ============================================================
 # CORS
-# --------------------------------------------------
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,9 +53,9 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
-# Request models
-# --------------------------------------------------
+# ============================================================
+# REQUEST MODELS
+# ============================================================
 
 class PredictionRequest(BaseModel):
     supplier: str
@@ -66,9 +67,25 @@ class RecommendationRequest(BaseModel):
     quantity: float
 
 
-# --------------------------------------------------
-# Dataset helper
-# --------------------------------------------------
+class PrescriptionRequest(BaseModel):
+    supplier: str
+    quantity: float
+
+
+class ExecutePrescriptionRequest(BaseModel):
+    supplier: str
+    quantity: float
+    prescription_id: str
+    action: str
+    cost: float
+    days: int
+    risk: str
+    description: str
+
+
+# ============================================================
+# DATASET HELPER
+# ============================================================
 
 def get_dataset():
 
@@ -79,12 +96,19 @@ def get_dataset():
         / "supply_chain_data.csv"
     )
 
+    if not dataset_path.exists():
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Dataset not found: {dataset_path}"
+        )
+
     return pd.read_csv(dataset_path)
 
 
-# --------------------------------------------------
-# Supplier helper
-# --------------------------------------------------
+# ============================================================
+# SUPPLIER HELPER
+# ============================================================
 
 def get_supplier_row(df, supplier_name):
 
@@ -97,14 +121,15 @@ def get_supplier_row(df, supplier_name):
     ]
 
     if supplier_rows.empty:
+
         return df.iloc[0]
 
     return supplier_rows.iloc[0]
 
 
-# --------------------------------------------------
-# Feature helper
-# --------------------------------------------------
+# ============================================================
+# FEATURE HELPER
+# ============================================================
 
 def prepare_features(supplier_row, quantity):
 
@@ -127,9 +152,9 @@ def prepare_features(supplier_row, quantity):
     }
 
 
-# --------------------------------------------------
-# Root endpoint
-# --------------------------------------------------
+# ============================================================
+# ROOT ENDPOINT
+# ============================================================
 
 @app.get("/")
 def root():
@@ -140,9 +165,9 @@ def root():
     }
 
 
-# --------------------------------------------------
-# Suppliers endpoint
-# --------------------------------------------------
+# ============================================================
+# SUPPLIERS ENDPOINT
+# ============================================================
 
 @app.get("/suppliers")
 def get_suppliers():
@@ -161,9 +186,9 @@ def get_suppliers():
     return suppliers
 
 
-# --------------------------------------------------
-# Prediction endpoint
-# --------------------------------------------------
+# ============================================================
+# PREDICTION ENDPOINT
+# ============================================================
 
 @app.post("/predict")
 def predict(data: PredictionRequest):
@@ -212,9 +237,9 @@ def predict(data: PredictionRequest):
     }
 
 
-# --------------------------------------------------
-# Recommendation endpoint
-# --------------------------------------------------
+# ============================================================
+# RECOMMENDATION ENDPOINT
+# ============================================================
 
 @app.post("/recommendations")
 def recommendations(data: RecommendationRequest):
@@ -282,9 +307,111 @@ def recommendations(data: RecommendationRequest):
     }
 
 
-# --------------------------------------------------
-# History endpoint
-# --------------------------------------------------
+# ============================================================
+# PRESCRIPTION GENERATION ENDPOINT
+# ============================================================
+
+@app.post("/prescriptions")
+def prescriptions(data: PrescriptionRequest):
+
+    if data.quantity <= 0:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Order quantity must be greater than zero."
+        )
+
+    df = get_dataset()
+
+    supplier_row = get_supplier_row(
+        df,
+        data.supplier
+    )
+
+    features = prepare_features(
+        supplier_row,
+        data.quantity
+    )
+
+    risk = predict_risk(features)
+
+    prescription_options = generate_prescriptions(
+        supplier=data.supplier,
+        quantity=data.quantity,
+        risk=risk
+    )
+
+    if not prescription_options:
+
+        raise HTTPException(
+            status_code=400,
+            detail="No feasible prescription could be generated."
+        )
+
+    return {
+        "supplier": data.supplier,
+        "quantity": data.quantity,
+        "risk": risk,
+        "prescriptions": prescription_options
+    }
+
+
+# ============================================================
+# EXECUTE PRESCRIPTION ENDPOINT
+# ============================================================
+
+@app.post("/prescriptions/execute")
+def execute_prescription(data: ExecutePrescriptionRequest):
+
+    timestamp = datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    recommendation = (
+        f"Executed prescription: {data.action}. "
+        f"Estimated cost: ${data.cost:,.2f}. "
+        f"Estimated delivery: {data.days} days. "
+        f"{data.description}"
+    )
+
+    db: Session = SessionLocal()
+
+    try:
+
+        decision = DecisionHistory(
+            supplier=data.supplier,
+            quantity=data.quantity,
+            risk=data.risk,
+            recommendation=recommendation,
+            timestamp=timestamp
+        )
+
+        db.add(decision)
+        db.commit()
+        db.refresh(decision)
+
+        return {
+            "message": "Prescription executed successfully.",
+            "decision_id": decision.id,
+            "supplier": data.supplier,
+            "quantity": data.quantity,
+            "prescription_id": data.prescription_id,
+            "action": data.action,
+            "cost": data.cost,
+            "days": data.days,
+            "risk": data.risk,
+            "description": data.description,
+            "timestamp": timestamp
+        }
+
+    finally:
+
+        db.close()
+
+
+# ============================================================
+# HISTORY ENDPOINT
+# ============================================================
 
 @app.get("/history")
 def get_history():
@@ -316,9 +443,9 @@ def get_history():
         db.close()
 
 
-# --------------------------------------------------
-# Delete history record
-# --------------------------------------------------
+# ============================================================
+# DELETE HISTORY RECORD
+# ============================================================
 
 @app.delete("/history/{decision_id}")
 def delete_history(decision_id: int):
@@ -329,7 +456,9 @@ def delete_history(decision_id: int):
 
         decision = (
             db.query(DecisionHistory)
-            .filter(DecisionHistory.id == decision_id)
+            .filter(
+                DecisionHistory.id == decision_id
+            )
             .first()
         )
 
