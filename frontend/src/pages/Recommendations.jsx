@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./Recommendations.css";
 
 function Recommendations() {
   const [suppliers, setSuppliers] = useState([]);
@@ -52,7 +53,7 @@ function Recommendations() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            supplier: supplier,
+            supplier,
             quantity: Number(quantity),
           }),
         }
@@ -67,6 +68,7 @@ function Recommendations() {
       setResult(data);
     } catch (err) {
       console.error(err);
+
       setError(
         "Could not generate recommendation. Make sure FastAPI is running."
       );
@@ -75,127 +77,153 @@ function Recommendations() {
     }
   };
 
+  const getRiskClass = (risk) => {
+    if (risk === "High") return "risk-high";
+    if (risk === "Medium") return "risk-medium";
+    return "risk-low";
+  };
+
   return (
-    <div style={{ padding: "40px", maxWidth: "900px" }}>
-      <h1>Supplier Recommendations</h1>
+    <div className="recommendation-page">
+      <div className="recommendation-header">
+        <div>
+          <span className="page-eyebrow">SUPPLIER INTELLIGENCE</span>
 
-      <p>
-        Get an AI-powered supplier risk assessment and recommendation.
-      </p>
+          <h1>Supplier Recommendations</h1>
 
-      <form onSubmit={handleRecommendation}>
-        <div style={{ marginTop: "25px" }}>
-          <label>
-            <strong>Supplier</strong>
-          </label>
+          <p>
+            Evaluate supplier risk and receive an actionable recommendation
+            before placing an order.
+          </p>
+        </div>
+      </div>
 
-          <br />
+      <div className="recommendation-layout">
+        <div className="recommendation-form-card">
+          <div className="card-heading">
+            <h2>Run Assessment</h2>
 
-          <select
-            value={supplier}
-            onChange={(event) => setSupplier(event.target.value)}
-            style={{
-              marginTop: "8px",
-              padding: "10px",
-              width: "100%",
-              maxWidth: "600px",
-            }}
-          >
-            {suppliers.length === 0 ? (
-              <option value="">Loading suppliers...</option>
-            ) : (
-              suppliers.map((item, index) => (
-                <option key={index} value={item}>
-                  {item}
-                </option>
-              ))
+            <p>
+              Select a supplier and enter the expected order quantity.
+            </p>
+          </div>
+
+          <form onSubmit={handleRecommendation}>
+            <div className="recommendation-field">
+              <label htmlFor="supplier">Supplier</label>
+
+              <select
+                id="supplier"
+                value={supplier}
+                onChange={(event) => setSupplier(event.target.value)}
+              >
+                {suppliers.length === 0 ? (
+                  <option value="">Loading suppliers...</option>
+                ) : (
+                  suppliers.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            <div className="recommendation-field">
+              <label htmlFor="quantity">Order Quantity</label>
+
+              <input
+                id="quantity"
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
+              />
+            </div>
+
+            {error && (
+              <div className="recommendation-error">
+                {error}
+              </div>
             )}
-          </select>
+
+            <button
+              type="submit"
+              className="recommendation-button"
+              disabled={loading}
+            >
+              {loading
+                ? "Analyzing Supplier..."
+                : "Get Recommendation"}
+            </button>
+          </form>
         </div>
 
-        <div style={{ marginTop: "20px" }}>
-          <label>
-            <strong>Order Quantity</strong>
-          </label>
+        <div className="recommendation-info-card">
+          <span className="info-label">WHAT YOU GET</span>
 
-          <br />
+          <h2>AI-assisted supplier decision support</h2>
 
-          <input
-            type="number"
-            min="1"
-            value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
-            style={{
-              marginTop: "8px",
-              padding: "10px",
-              width: "100%",
-              maxWidth: "600px",
-            }}
-          />
+          <p>
+            SupplyPilot-AI evaluates supplier information and order quantity
+            to estimate risk and provide a practical next step.
+          </p>
+
+          <div className="info-points">
+            <div>
+              <span>01</span>
+              <p>Supplier risk assessment</p>
+            </div>
+
+            <div>
+              <span>02</span>
+              <p>Order-specific evaluation</p>
+            </div>
+
+            <div>
+              <span>03</span>
+              <p>Actionable recommendation</p>
+            </div>
+          </div>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            marginTop: "25px",
-            padding: "12px 24px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "7px",
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading
-            ? "Getting Recommendation..."
-            : "Get Recommendation"}
-        </button>
-      </form>
-
-      {error && (
-        <div
-          style={{
-            marginTop: "25px",
-            padding: "15px",
-            background: "#fee2e2",
-            color: "#b91c1c",
-            borderRadius: "8px",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      </div>
 
       {result && (
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "25px",
-            background: "white",
-            border: "1px solid #d9e2ec",
-            borderRadius: "12px",
-          }}
-        >
-          <h2>Recommendation Result</h2>
+        <div className="recommendation-result-card">
+          <div className="result-top">
+            <div>
+              <span className="page-eyebrow">ASSESSMENT COMPLETE</span>
 
-          <p>
-            <strong>Supplier:</strong> {result.supplier}
-          </p>
+              <h2>Recommendation Result</h2>
+            </div>
 
-          <p>
-            <strong>Quantity:</strong> {result.quantity}
-          </p>
+            <span className={`risk-badge ${getRiskClass(result.risk)}`}>
+              {result.risk} Risk
+            </span>
+          </div>
 
-          <p>
-            <strong>Risk:</strong> {result.risk}
-          </p>
+          <div className="result-details">
+            <div className="result-detail">
+              <span>SUPPLIER</span>
+              <strong>{result.supplier}</strong>
+            </div>
 
-          <p>
-            <strong>Recommendation:</strong>
-          </p>
+            <div className="result-detail">
+              <span>ORDER QUANTITY</span>
+              <strong>{result.quantity}</strong>
+            </div>
 
-          <p>{result.recommendation}</p>
+            <div className="result-detail">
+              <span>RISK LEVEL</span>
+              <strong>{result.risk}</strong>
+            </div>
+          </div>
+
+          <div className="recommendation-message">
+            <span>RECOMMENDED ACTION</span>
+
+            <p>{result.recommendation}</p>
+          </div>
         </div>
       )}
     </div>

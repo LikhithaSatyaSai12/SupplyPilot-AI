@@ -71,6 +71,7 @@ class RecommendationRequest(BaseModel):
 # --------------------------------------------------
 
 def get_dataset():
+
     dataset_path = (
         Path(__file__).resolve().parents[2]
         / "data"
@@ -88,7 +89,10 @@ def get_dataset():
 def get_supplier_row(df, supplier_name):
 
     supplier_rows = df[
-        df["Supplier name"].astype(str).str.strip().str.lower()
+        df["Supplier name"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
         == supplier_name.strip().lower()
     ]
 

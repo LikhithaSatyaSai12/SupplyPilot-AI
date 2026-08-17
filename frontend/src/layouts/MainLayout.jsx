@@ -3,15 +3,15 @@ import Sidebar from "../components/Sidebar";
 
 function MainLayout({ children }) {
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="app-layout">
       <Sidebar />
 
-      <div style={{ flex: 1 }}>
+      <div className="main-section">
         <Navbar />
 
-        <div style={{ padding: "20px" }}>
+        <main className="page-content">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

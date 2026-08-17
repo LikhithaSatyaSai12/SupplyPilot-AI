@@ -1,16 +1,13 @@
 function Navbar() {
   return (
-    <div
-      style={{
-        background: "#1976d2",
-        color: "white",
-        padding: "18px 25px",
-        fontSize: "24px",
-        fontWeight: "bold",
-      }}
-    >
-      SupplyPilot-AI
-    </div>
+    <header className="top-navbar">
+      <h2>SupplyPilot-AI</h2>
+
+      <div className="system-status">
+        <span className="status-dot"></span>
+        System Online
+      </div>
+    </header>
   );
 }
 

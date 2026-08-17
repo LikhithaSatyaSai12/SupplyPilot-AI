@@ -2,44 +2,22 @@ import { NavLink } from "react-router-dom";
 
 function Sidebar() {
   return (
-    <div
-      style={{
-        width: "220px",
-        background: "#263238",
-        color: "white",
-        padding: "20px",
-      }}
-    >
-      <h2>Menu</h2>
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <h2>SupplyPilot-AI</h2>
+        <p>AI Supply Chain Management</p>
+      </div>
 
-      <NavLink
-        to="/"
-        style={{ display: "block", color: "white", textDecoration: "none", margin: "10px 0" }}
-      >
-        Dashboard
-      </NavLink>
+      <nav className="sidebar-menu">
+        <NavLink to="/">Dashboard</NavLink>
 
-      <NavLink
-        to="/prediction"
-        style={{ display: "block", color: "white", textDecoration: "none", margin: "10px 0" }}
-      >
-        Prediction
-      </NavLink>
+        <NavLink to="/prediction">Prediction</NavLink>
 
-      <NavLink
-        to="/recommendations"
-        style={{ display: "block", color: "white", textDecoration: "none", margin: "10px 0" }}
-      >
-        Recommendations
-      </NavLink>
+        <NavLink to="/recommendations">Recommendations</NavLink>
 
-      <NavLink
-        to="/history"
-        style={{ display: "block", color: "white", textDecoration: "none", margin: "10px 0" }}
-      >
-        History
-      </NavLink>
-    </div>
+        <NavLink to="/history">Decision History</NavLink>
+      </nav>
+    </aside>
   );
 }
 
