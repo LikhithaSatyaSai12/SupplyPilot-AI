@@ -16,6 +16,12 @@ function Sidebar() {
         <NavLink to="/recommendations">Recommendations</NavLink>
 
         <NavLink to="/history">Decision History</NavLink>
+
+        <NavLink to="/prescriptions">Supplier Prescriptions</NavLink>
+
+        <NavLink to="/executed-decisions">
+          Executed Decisions
+        </NavLink>
       </nav>
     </aside>
   );

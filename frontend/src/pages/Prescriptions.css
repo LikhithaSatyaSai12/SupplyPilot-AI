@@ -1,258 +1,473 @@
-.prescriptions-page {
+/* =========================================================
+   SUPPLIER PRESCRIPTIONS PAGE
+   ========================================================= */
+
+.page-container {
   width: 100%;
-  min-height: 100vh;
-  padding: 38px;
-  background: #f4f7fb;
-  color: #14213d;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 48px 60px;
+  box-sizing: border-box;
 }
 
-.prescriptions-header {
-  margin-bottom: 30px;
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  margin: 6px 0 12px;
+  font-size: 38px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #102a43;
+}
+
+.page-description {
+  max-width: 760px;
+  margin: 0;
+  color: #627d98;
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 .eyebrow {
-  display: inline-block;
-  margin-bottom: 10px;
-  color: #2563eb;
+  margin: 0;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.8px;
+  color: #2563eb;
 }
 
-.prescriptions-header h1 {
+
+/* =========================================================
+   FORM CARD
+   ========================================================= */
+
+.assessment-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 18px;
+  padding: 30px;
+  margin-bottom: 36px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.section-heading h2 {
+  margin: 6px 0 10px;
+  color: #102a43;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.section-heading p:not(.eyebrow) {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.2;
-  color: #14213d;
-}
-
-.prescriptions-header p {
-  max-width: 720px;
-  margin: 10px 0 0;
-  color: #64748b;
-  font-size: 16px;
+  color: #627d98;
   line-height: 1.6;
 }
 
-.prescription-card {
-  max-width: 850px;
-  padding: 30px;
-  margin-bottom: 30px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-}
 
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  margin-bottom: 28px;
-}
+/* =========================================================
+   FORM
+   ========================================================= */
 
-.card-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  border-radius: 9px;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.card-header h2 {
-  margin: 0 0 6px;
-  font-size: 21px;
-}
-
-.card-header p {
-  margin: 0;
-  color: #64748b;
-}
-
-.prescription-form {
+.form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 28px;
+  margin-bottom: 24px;
 }
 
-.prescription-field {
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.prescription-field label {
-  color: #334155;
-  font-size: 14px;
+.form-group label {
+  font-size: 13px;
   font-weight: 700;
+  color: #243b53;
 }
 
-.prescription-field select,
-.prescription-field input {
+.form-group select,
+.form-group input {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  min-height: 48px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid #bcccdc;
+  border-radius: 10px;
   background: #ffffff;
-  color: #14213d;
+  color: #102a43;
   font-size: 15px;
   outline: none;
 }
 
-.prescription-field select:focus,
-.prescription-field input:focus {
+.form-group select:focus,
+.form-group input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.prescription-button {
-  grid-column: 1 / -1;
-  width: 100%;
-  padding: 13px 20px;
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.primary-button,
+.secondary-button {
   border: none;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 15px;
+  border-radius: 10px;
+  min-height: 46px;
+  padding: 0 20px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.prescription-button:hover {
+.primary-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.primary-button:hover {
   background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
-.what-you-get {
-  max-width: 1000px;
-  padding: 30px;
-  margin-bottom: 30px;
+.secondary-button {
+  background: #eaf2ff;
+  color: #1d4ed8;
+}
+
+.secondary-button:hover {
+  background: #dbeafe;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* =========================================================
+   ERROR / SUCCESS
+   ========================================================= */
+
+.error-message {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.success-message {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
+
+.results-section {
+  margin-bottom: 44px;
+}
+
+.results-section > .section-heading {
+  margin-bottom: 24px;
+}
+
+
+/* =========================================================
+   RESULT SUMMARY
+   ========================================================= */
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.result-summary > div {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #d9e2ec;
   border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.04);
 }
 
-.what-you-get h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
+.result-summary span,
+.execution-summary span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #829ab1;
 }
 
-.what-you-get > p {
-  max-width: 750px;
-  margin: 0 0 25px;
-  color: #64748b;
+.result-summary strong,
+.execution-summary strong {
+  display: block;
+  color: #102a43;
+  font-size: 18px;
+}
+
+
+/* =========================================================
+   PRESCRIPTION CARDS
+   ========================================================= */
+
+.prescription-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.prescription-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  padding: 26px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.prescription-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+}
+
+.optimal-card {
+  border: 2px solid #2563eb;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
+}
+
+.optimal-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: 18px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.prescription-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.prescription-card h3 {
+  margin: 0 0 12px;
+  color: #102a43;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.prescription-description {
+  margin: 0 0 24px;
+  color: #627d98;
+  font-size: 14px;
   line-height: 1.6;
 }
 
-.prescription-features {
+
+/* =========================================================
+   PRESCRIPTION DETAILS
+   ========================================================= */
+
+.prescription-details {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: auto;
+  margin-bottom: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.prescription-details span {
+  display: block;
+  margin-bottom: 5px;
+  color: #829ab1;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.prescription-details strong {
+  display: block;
+  color: #102a43;
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   EXECUTE BUTTON
+   ========================================================= */
+
+.execute-button {
+  width: 100%;
+  margin-top: auto;
+}
+
+
+/* =========================================================
+   EXECUTION RESULT
+   ========================================================= */
+
+.execution-result {
+  margin-top: 28px;
+  padding: 28px;
+  border: 1px solid #a7f3d0;
+  border-radius: 18px;
+  background: #ecfdf5;
+}
+
+.execution-result h2 {
+  margin: 6px 0 20px;
+  color: #065f46;
+  font-size: 24px;
+}
+
+.execution-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
-.feature-item {
-  padding: 20px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-}
-
-.feature-item > span {
-  display: block;
-  margin-bottom: 12px;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.feature-item strong {
-  display: block;
-  margin-bottom: 8px;
+.execution-summary strong {
   font-size: 15px;
 }
 
-.feature-item p {
-  margin: 0;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.5;
+
+/* =========================================================
+   HOW IT WORKS
+   ========================================================= */
+
+.how-it-works {
+  padding: 34px 0 10px;
 }
 
-.prescription-results {
-  max-width: 1000px;
-  padding: 30px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+.how-it-works > h2 {
+  margin: 6px 0 24px;
+  color: #102a43;
+  font-size: 28px;
 }
 
-.result-heading {
-  margin-bottom: 25px;
-}
-
-.result-heading h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
-}
-
-.result-heading p {
-  margin: 0;
-  color: #64748b;
-}
-
-.prescription-list {
+.steps-grid {
   display: grid;
-  gap: 15px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
-.prescription-result-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  padding: 20px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+.step-card {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 16px;
 }
 
-.prescription-result-card > span {
+.step-card > span {
+  display: inline-block;
+  margin-bottom: 14px;
   color: #2563eb;
   font-size: 13px;
   font-weight: 800;
+  letter-spacing: 1px;
 }
 
-.prescription-result-card h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
+.step-card h3 {
+  margin: 0 0 10px;
+  color: #102a43;
+  font-size: 18px;
 }
 
-.prescription-result-card p {
+.step-card p {
   margin: 0;
-  color: #64748b;
-  line-height: 1.5;
+  color: #627d98;
   font-size: 14px;
+  line-height: 1.6;
 }
 
-@media (max-width: 768px) {
-  .prescriptions-page {
-    padding: 25px 20px;
-  }
 
-  .prescription-form {
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .prescription-grid {
     grid-template-columns: 1fr;
   }
 
-  .prescription-button {
-    grid-column: auto;
+  .result-summary {
+    grid-template-columns: 1fr;
   }
 
-  .prescription-features {
+  .execution-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .page-container {
+    padding: 28px 20px 40px;
+  }
+
+  .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .execution-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header h1 {
+    font-size: 30px;
   }
 }

@@ -1,0 +1,254 @@
+.executed-page {
+  padding: 32px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.executed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.executed-eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #64748b;
+}
+
+.executed-header h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.15;
+  color: #0f172a;
+}
+
+.executed-description {
+  margin: 12px 0 0;
+  max-width: 760px;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.executed-refresh-button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  background: #0f172a;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.executed-refresh-button:hover {
+  background: #1e293b;
+}
+
+.executed-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.executed-error {
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.execution-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.execution-stat-card {
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.execution-stat-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.execution-stat-value {
+  display: block;
+  color: #0f172a;
+  font-size: 32px;
+}
+
+.execution-stat-text {
+  display: block;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.execution-history {
+  padding: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.execution-section-header {
+  margin-bottom: 24px;
+}
+
+.execution-section-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.execution-section-header p:last-child {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.execution-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.execution-table {
+  width: 100%;
+  min-width: 1250px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.execution-table th {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.execution-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+  vertical-align: middle;
+}
+
+.execution-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.execution-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.description-cell {
+  min-width: 250px;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.risk-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.risk-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.risk-low {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.delete-execution-button {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: white;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-execution-button:hover {
+  background: #fef2f2;
+}
+
+.execution-empty {
+  padding: 60px 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.execution-empty h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.execution-empty p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .executed-page {
+    padding: 20px;
+  }
+
+  .executed-header {
+    flex-direction: column;
+  }
+
+  .execution-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .executed-header h1 {
+    font-size: 30px;
+  }
+}

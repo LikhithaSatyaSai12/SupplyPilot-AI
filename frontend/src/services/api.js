@@ -7,4 +7,15 @@ const API = axios.create({
   },
 });
 
+export const getSuppliers = () => API.get("/suppliers");
+
+export const generatePrescriptions = (supplier, quantity) =>
+  API.post("/prescriptions", {
+    supplier,
+    quantity: Number(quantity),
+  });
+
+export const executePrescription = (data) =>
+  API.post("/prescriptions/execute", data);
+
 export default API;
