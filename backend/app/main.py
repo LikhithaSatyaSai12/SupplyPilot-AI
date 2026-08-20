@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -9,11 +9,20 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.services.ml_service import predict_risk
+from app.services.learning_service import get_historical_option_performance
+from app.services.classification_service import classify_outcome
+from app.services.retraining_service import (
+    run_retraining_pipeline,
+    check_discrepancy_trigger,
+    get_active_version,
+    get_retrain_status,
+)
 from app.database import SessionLocal, Base, engine
 from app.models import (
     DecisionHistory,
     ExecutedDecision,
     ExecutionOutcome,
+    ModelRetraining,
 )
 from app.prescription_engine import generate_prescriptions
 
@@ -197,6 +206,7 @@ def get_suppliers():
 
 
 # ==================================================
+# ==================================================
 # PREDICTION
 # ==================================================
 
@@ -216,7 +226,10 @@ def predict(data: PredictionRequest):
         data.quantity,
     )
 
-    risk = predict_risk(features)
+    pred_res = predict_risk(features)
+    risk = pred_res["risk"]
+    predicted_delay_days = pred_res["predicted_delay_days"]
+    disruption_probability = pred_res["disruption_probability"]
 
     timestamp = datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -230,7 +243,7 @@ def predict(data: PredictionRequest):
             supplier=data.supplier,
             quantity=data.quantity,
             risk=risk,
-            recommendation="Prediction generated.",
+            recommendation=f"Predicted delay: {predicted_delay_days} days ({disruption_probability}% disruption probability).",
             timestamp=timestamp,
         )
 
@@ -245,6 +258,8 @@ def predict(data: PredictionRequest):
         "supplier": data.supplier,
         "quantity": data.quantity,
         "risk": risk,
+        "predicted_delay_days": predicted_delay_days,
+        "disruption_probability": disruption_probability,
     }
 
 
@@ -268,19 +283,22 @@ def recommendations(data: RecommendationRequest):
         data.quantity,
     )
 
-    risk = predict_risk(features)
+    pred_res = predict_risk(features)
+    risk = pred_res["risk"]
+    predicted_delay_days = pred_res["predicted_delay_days"]
+    disruption_probability = pred_res["disruption_probability"]
 
     if risk == "High":
 
         recommendation = (
-            "Consider an alternative supplier and closely monitor "
-            "the shipment."
+            f"Impending supply chain delay detected (~{predicted_delay_days} days, "
+            f"{disruption_probability}% disruption prob). Consider an alternative supplier."
         )
 
     elif risk == "Medium":
 
         recommendation = (
-            "Confirm the supplier schedule and monitor the shipment."
+            f"Moderate risk (~{predicted_delay_days} days delay). Confirm supplier schedule."
         )
 
     else:
@@ -316,6 +334,8 @@ def recommendations(data: RecommendationRequest):
         "supplier": data.supplier,
         "quantity": data.quantity,
         "risk": risk,
+        "predicted_delay_days": predicted_delay_days,
+        "disruption_probability": disruption_probability,
         "recommendation": recommendation,
     }
 
@@ -340,18 +360,34 @@ def prescriptions(data: RecommendationRequest):
         data.quantity,
     )
 
-    risk = predict_risk(features)
+    pred_res = predict_risk(features)
+    risk = pred_res["risk"]
+    predicted_delay_days = pred_res["predicted_delay_days"]
+    disruption_probability = pred_res["disruption_probability"]
+
+    # Fetch historical execution outcome statistics for closed-loop learning
+    db: Session = SessionLocal()
+    try:
+        historical_stats = get_historical_option_performance(db)
+    finally:
+        db.close()
 
     prescription_options = generate_prescriptions(
         supplier=data.supplier,
         quantity=data.quantity,
         risk=risk,
+        predicted_delay_days=predicted_delay_days,
+        unit_price=float(supplier_row.get("Price", 50.0)),
+        shipping_cost=float(supplier_row.get("Shipping costs", 5.0)),
+        historical_stats=historical_stats,
     )
 
     return {
         "supplier": data.supplier,
         "quantity": data.quantity,
         "risk": risk,
+        "predicted_delay_days": predicted_delay_days,
+        "disruption_probability": disruption_probability,
         "prescriptions": prescription_options,
     }
 
@@ -580,6 +616,7 @@ def delete_executed_decision(
 @app.post("/execution-outcomes")
 def create_execution_outcome(
     data: ExecutionOutcomeRequest,
+    background_tasks: BackgroundTasks,
 ):
 
     db: Session = SessionLocal()
@@ -607,44 +644,34 @@ def create_execution_outcome(
             )
 
         # ------------------------------------------
-        # Calculate variances
+        # Enforce 1-to-(0..1) duplicate outcome prevention
         # ------------------------------------------
+        existing_outcome = (
+            db.query(ExecutionOutcome)
+            .filter(ExecutionOutcome.executed_decision_id == data.executed_decision_id)
+            .first()
+        )
+        if existing_outcome is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="Execution outcome already recorded for this decision.",
+            )
 
-        cost_variance = (
-            data.actual_cost
-            - executed_decision.expected_cost
+        # ------------------------------------------
+        # Deterministic Outcome Classification
+        # ------------------------------------------
+        eval_res = classify_outcome(
+            expected_cost=executed_decision.expected_cost,
+            actual_cost=data.actual_cost,
+            expected_days=executed_decision.expected_days,
+            actual_days=data.actual_days,
+            expected_risk=executed_decision.expected_risk,
+            actual_risk=data.actual_risk,
         )
 
-        delivery_variance = (
-            data.actual_days
-            - executed_decision.expected_days
-        )
-
-        # ------------------------------------------
-        # Determine outcome status
-        # ------------------------------------------
-
-        if (
-            cost_variance <= 0
-            and delivery_variance <= 0
-            and data.actual_risk
-            == executed_decision.expected_risk
-        ):
-
-            outcome_status = "Successful"
-
-        elif (
-            cost_variance > 0
-            or delivery_variance > 0
-            or data.actual_risk
-            != executed_decision.expected_risk
-        ):
-
-            outcome_status = "Variance Detected"
-
-        else:
-
-            outcome_status = "Completed"
+        cost_variance = eval_res["cost_variance"]
+        delivery_variance = eval_res["delivery_variance"]
+        outcome_status = eval_res["outcome_status"]
 
         # ------------------------------------------
         # Timestamp
@@ -690,6 +717,24 @@ def create_execution_outcome(
 
         db.refresh(outcome)
 
+        # ------------------------------------------
+        # Automated Discrepancy Retraining Trigger
+        # ------------------------------------------
+        should_retrain, trigger_reason = check_discrepancy_trigger(
+            actual_cost=data.actual_cost,
+            expected_cost=executed_decision.expected_cost,
+            actual_days=data.actual_days,
+            expected_days=executed_decision.expected_days,
+            actual_risk=data.actual_risk,
+            expected_risk=executed_decision.expected_risk,
+        )
+
+        if should_retrain:
+            background_tasks.add_task(
+                run_retraining_pipeline,
+                trigger_reason=f"AUTOMATED_DISCREPANCY: {trigger_reason}",
+            )
+
         return {
             "message": "Execution outcome recorded successfully.",
             "id": outcome.id,
@@ -711,12 +756,96 @@ def create_execution_outcome(
                 outcome.delivery_variance
             ),
             "outcome_status": outcome.outcome_status,
+            "cost_status": eval_res["cost_status"],
+            "delivery_status": eval_res["delivery_status"],
+            "risk_status": eval_res["risk_status"],
             "recorded_at": outcome.recorded_at,
+            "retrain_triggered": should_retrain,
+            "trigger_reason": trigger_reason if should_retrain else None,
         }
 
     finally:
 
         db.close()
+
+
+# ==================================================
+# AUTOMATED MODEL RETRAIN ENDPOINTS
+# ==================================================
+
+
+class RetrainRequest(BaseModel):
+    reason: str = "MANUAL_API"
+
+
+@app.post("/retrain")
+def retrain_model_endpoint(
+    background_tasks: BackgroundTasks,
+    data: RetrainRequest = None,
+):
+    """
+    Trigger automated model retraining pipeline in background.
+    Prevents concurrent training runs via thread lock.
+    """
+    reason = data.reason if data and data.reason else "MANUAL_API"
+
+    # Enqueue background task safely
+    background_tasks.add_task(
+        run_retraining_pipeline,
+        trigger_reason=reason,
+    )
+
+    return {
+        "message": "Model retraining pipeline initiated safely in background.",
+        "status": "RETRAIN_STARTED",
+        "active_model_version": get_active_version(),
+        "trigger_reason": reason,
+    }
+
+
+@app.get("/retrain/status")
+def get_retrain_status_endpoint():
+    """
+    Get current retraining pipeline status and active model version.
+    """
+    return get_retrain_status()
+
+
+@app.get("/retrain/history")
+def get_retrain_history_endpoint():
+    """
+    Get history of previous model retraining runs.
+    """
+    db: Session = SessionLocal()
+
+    try:
+
+        records = (
+            db.query(ModelRetraining)
+            .order_by(ModelRetraining.id.desc())
+            .all()
+        )
+
+        return [
+            {
+                "id": record.id,
+                "started_at": record.started_at,
+                "completed_at": record.completed_at,
+                "status": record.status,
+                "trigger_reason": record.trigger_reason,
+                "number_of_records": record.number_of_records,
+                "model_version": record.model_version,
+                "risk_accuracy": record.risk_accuracy,
+                "delay_mae": record.delay_mae,
+                "error_message": record.error_message,
+            }
+            for record in records
+        ]
+
+    finally:
+
+        db.close()
+
 
 
 # ==================================================

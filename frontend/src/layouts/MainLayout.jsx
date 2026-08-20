@@ -1,3 +1,4 @@
+import { Outlet } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
@@ -10,11 +11,11 @@ function MainLayout({ children }) {
         <Navbar />
 
         <main className="page-content">
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
     </div>
   );
 }
 
-export default MainLayout;
+export default MainLayout;

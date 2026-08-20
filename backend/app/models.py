@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Float, String
+from sqlalchemy import Column, Integer, Float, String, ForeignKey
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -52,6 +53,14 @@ class ExecutedDecision(Base):
 
     executed_at = Column(String, nullable=False)
 
+    # 1-to-(0..1) Relationship to ExecutionOutcome
+    outcome = relationship(
+        "ExecutionOutcome",
+        uselist=False,
+        back_populates="executed_decision",
+        cascade="all, delete-orphan",
+    )
+
 
 # --------------------------------------------------
 # Execution Outcomes
@@ -64,8 +73,16 @@ class ExecutionOutcome(Base):
 
     executed_decision_id = Column(
         Integer,
+        ForeignKey("executed_decisions.id"),
         nullable=False,
-        index=True
+        unique=True,
+        index=True,
+    )
+
+    # Parent relationship back to ExecutedDecision
+    executed_decision = relationship(
+        "ExecutedDecision",
+        back_populates="outcome",
     )
 
     supplier = Column(
@@ -137,3 +154,31 @@ class ExecutionOutcome(Base):
         String,
         nullable=False
     )
+
+
+# --------------------------------------------------
+# Model Retraining Log
+# --------------------------------------------------
+
+class ModelRetraining(Base):
+    __tablename__ = "model_retraining"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    started_at = Column(String, nullable=False)
+
+    completed_at = Column(String, nullable=True)
+
+    status = Column(String, nullable=False)
+
+    trigger_reason = Column(String, nullable=False)
+
+    number_of_records = Column(Integer, nullable=False, default=0)
+
+    model_version = Column(String, nullable=False)
+
+    risk_accuracy = Column(Float, nullable=True)
+
+    delay_mae = Column(Float, nullable=True)
+
+    error_message = Column(String, nullable=True)

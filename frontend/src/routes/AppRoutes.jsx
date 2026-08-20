@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MainLayout from "../layouts/MainLayout";
 
 import Dashboard from "../pages/Dashboard";
 import Prediction from "../pages/Prediction";
@@ -12,43 +13,50 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={<Dashboard />}
-        />
+        <Route element={<MainLayout />}>
+          <Route
+            path="/"
+            element={<Dashboard />}
+          />
 
-        <Route
-          path="/prediction"
-          element={<Prediction />}
-        />
+          <Route
+            path="/prediction"
+            element={<Prediction />}
+          />
 
-        <Route
-          path="/recommendations"
-          element={<Recommendations />}
-        />
+          <Route
+            path="/recommendations"
+            element={<Recommendations />}
+          />
 
-        <Route
-          path="/history"
-          element={<DecisionHistory />}
-        />
+          <Route
+            path="/history"
+            element={<DecisionHistory />}
+          />
 
-        <Route
-          path="/prescriptions"
-          element={<Prescriptions />}
-        />
+          <Route
+            path="/prescriptions"
+            element={<Prescriptions />}
+          />
 
-        <Route
-          path="/executed-decisions"
-          element={<ExecutedDecisions />}
-        />
+          <Route
+            path="/executed-decisions"
+            element={<ExecutedDecisions />}
+          />
 
-        <Route
-          path="/analytics"
-          element={<Analytics />}
-        />
+          <Route
+            path="/execution-outcomes"
+            element={<ExecutedDecisions />}
+          />
+
+          <Route
+            path="/analytics"
+            element={<Analytics />}
+          />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
 }
 
-export default AppRoutes;
+export default AppRoutes;

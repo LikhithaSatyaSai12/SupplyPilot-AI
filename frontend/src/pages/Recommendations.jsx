@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getSuppliers, getRecommendations } from "../services/api";
 import "./Recommendations.css";
 
 function Recommendations() {
@@ -10,15 +11,10 @@ function Recommendations() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/suppliers")
+    getSuppliers()
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to load suppliers");
-        }
+        const data = response.data;
 
-        return response.json();
-      })
-      .then((data) => {
         setSuppliers(data);
 
         if (data.length > 0) {
@@ -45,27 +41,12 @@ function Recommendations() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/recommendations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            supplier,
-            quantity: Number(quantity),
-          }),
-        }
-      );
+      const response = await getRecommendations({
+        supplier,
+        quantity: Number(quantity),
+      });
 
-      if (!response.ok) {
-        throw new Error("Recommendation request failed");
-      }
-
-      const data = await response.json();
-
-      setResult(data);
+      setResult(response.data);
     } catch (err) {
       console.error(err);
 

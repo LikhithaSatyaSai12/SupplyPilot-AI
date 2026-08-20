@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { getExecutionOutcomes } from "../services/api";
 import "./Analytics.css";
-
-const API_URL = "http://127.0.0.1:8000";
 
 function Analytics() {
   const [outcomes, setOutcomes] = useState([]);
@@ -13,13 +12,8 @@ function Analytics() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/execution-outcomes`);
-
-      if (!response.ok) {
-        throw new Error("Failed to load execution outcomes.");
-      }
-
-      const data = await response.json();
+      const response = await getExecutionOutcomes();
+      const data = response?.data || response;
 
       setOutcomes(Array.isArray(data) ? data : [data].filter(Boolean));
     } catch (err) {
@@ -57,12 +51,17 @@ function Analytics() {
       0
     );
 
+    // Exact backend outcome_status matching
     const varianceCount = outcomes.filter(
-      (item) => item.outcome_status === "Variance Detected"
+      (item) => String(item.outcome_status || "").trim().toUpperCase() === "VARIANCE_DETECTED"
     ).length;
 
-    const successfulCount = outcomes.filter(
-      (item) => item.outcome_status === "Within Expected Range"
+    const favorableCount = outcomes.filter(
+      (item) => String(item.outcome_status || "").trim().toUpperCase() === "FAVORABLE"
+    ).length;
+
+    const onTargetCount = outcomes.filter(
+      (item) => String(item.outcome_status || "").trim().toUpperCase() === "ON_TARGET"
     ).length;
 
     const averageCostVariance =
@@ -70,6 +69,9 @@ function Analytics() {
 
     const averageDeliveryVariance =
       total > 0 ? totalDeliveryVariance / total : 0;
+
+    const varianceRate =
+      total > 0 ? (varianceCount / total) * 100 : 0;
 
     const costAccuracy =
       totalExpectedCost > 0
@@ -80,6 +82,13 @@ function Analytics() {
           )
         : 0;
 
+    // Decision ROI formula derived directly from realized cost savings vs planned budget:
+    // ROI = (Total Expected Cost - Total Actual Cost) / Total Expected Cost * 100
+    const decisionRoi =
+      totalExpectedCost > 0
+        ? ((totalExpectedCost - totalActualCost) / totalExpectedCost) * 100
+        : 0;
+
     return {
       total,
       totalExpectedCost,
@@ -87,15 +96,37 @@ function Analytics() {
       totalCostVariance,
       totalDeliveryVariance,
       varianceCount,
-      successfulCount,
+      favorableCount,
+      onTargetCount,
       averageCostVariance,
       averageDeliveryVariance,
+      varianceRate,
       costAccuracy,
+      decisionRoi,
     };
   }, [outcomes]);
 
-  const formatCurrency = (value) =>
-    `₹${Number(value || 0).toLocaleString("en-IN")}`;
+  const formatCurrency = (value) => {
+    const num = Number(value || 0);
+    return `$${num.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const renderStatusBadge = (status) => {
+    const normalized = String(status || "").trim().toUpperCase();
+    if (normalized === "VARIANCE_DETECTED") {
+      return <span className="status-badge variance">Variance Detected</span>;
+    }
+    if (normalized === "FAVORABLE") {
+      return <span className="status-badge success">Favorable</span>;
+    }
+    if (normalized === "ON_TARGET") {
+      return <span className="status-badge on-target">On Target</span>;
+    }
+    return <span className="status-badge">{status || "Recorded"}</span>;
+  };
 
   if (loading) {
     return (
@@ -175,10 +206,8 @@ function Analytics() {
                 : "positive"
             }
           >
-            {analytics.totalCostVariance >= 0 ? "+" : "-"}
-            {formatCurrency(
-              Math.abs(analytics.totalCostVariance)
-            )}
+            {analytics.totalCostVariance > 0 ? "+" : ""}
+            {formatCurrency(analytics.totalCostVariance)}
           </strong>
         </div>
 
@@ -191,25 +220,48 @@ function Analytics() {
                 : "positive"
             }
           >
-            {analytics.totalDeliveryVariance >= 0 ? "+" : ""}
-            {analytics.totalDeliveryVariance} days
+            {analytics.totalDeliveryVariance > 0 ? "+" : ""}
+            {analytics.totalDeliveryVariance.toFixed(1)} days
           </strong>
         </div>
 
         <div className="analytics-card">
           <span>VARIANCES DETECTED</span>
-          <strong>{analytics.varianceCount}</strong>
+          <strong className={analytics.varianceCount > 0 ? "negative" : ""}>
+            {analytics.varianceCount}
+          </strong>
         </div>
 
         <div className="analytics-card">
-          <span>WITHIN EXPECTATION</span>
-          <strong>{analytics.successfulCount}</strong>
+          <span>FAVORABLE OUTCOMES</span>
+          <strong className="positive">
+            {analytics.favorableCount}
+          </strong>
+        </div>
+
+        <div className="analytics-card">
+          <span>ON TARGET</span>
+          <strong>{analytics.onTargetCount}</strong>
         </div>
 
         <div className="analytics-card">
           <span>COST ACCURACY</span>
           <strong>
             {analytics.costAccuracy.toFixed(1)}%
+          </strong>
+        </div>
+
+        <div className="analytics-card">
+          <span>DECISION ROI</span>
+          <strong
+            className={
+              analytics.decisionRoi >= 0
+                ? "positive"
+                : "negative"
+            }
+          >
+            {analytics.decisionRoi >= 0 ? "+" : ""}
+            {analytics.decisionRoi.toFixed(1)}%
           </strong>
         </div>
       </section>
@@ -252,70 +304,48 @@ function Analytics() {
               </thead>
 
               <tbody>
-                {outcomes.map((item) => (
-                  <tr key={item.id}>
-                    <td>#{item.id}</td>
+                {outcomes.map((item) => {
+                  const cVar = Number(item.cost_variance || 0);
+                  const dVar = Number(item.delivery_variance || 0);
 
-                    <td>{item.supplier}</td>
+                  return (
+                    <tr key={item.id}>
+                      <td>#{item.id}</td>
 
-                    <td>
-                      <strong>{item.action}</strong>
-                    </td>
+                      <td>{item.supplier}</td>
 
-                    <td>
-                      {formatCurrency(item.expected_cost)}
-                    </td>
+                      <td>
+                        <strong>{item.action}</strong>
+                      </td>
 
-                    <td>
-                      {formatCurrency(item.actual_cost)}
-                    </td>
+                      <td>
+                        {formatCurrency(item.expected_cost)}
+                      </td>
 
-                    <td
-                      className={
-                        Number(item.cost_variance) > 0
-                          ? "negative"
-                          : "positive"
-                      }
-                    >
-                      {Number(item.cost_variance) >= 0
-                        ? "+"
-                        : "-"}
-                      {formatCurrency(
-                        Math.abs(Number(item.cost_variance || 0))
-                      )}
-                    </td>
+                      <td>
+                        {formatCurrency(item.actual_cost)}
+                      </td>
 
-                    <td>{item.expected_days} days</td>
+                      <td className={cVar > 0 ? "negative" : "positive"}>
+                        {cVar > 0 ? "+" : ""}
+                        {formatCurrency(cVar)}
+                      </td>
 
-                    <td>{item.actual_days} days</td>
+                      <td>{item.expected_days} days</td>
 
-                    <td
-                      className={
-                        Number(item.delivery_variance) > 0
-                          ? "negative"
-                          : "positive"
-                      }
-                    >
-                      {Number(item.delivery_variance) >= 0
-                        ? "+"
-                        : ""}
-                      {item.delivery_variance} days
-                    </td>
+                      <td>{item.actual_days} days</td>
 
-                    <td>
-                      <span
-                        className={`status-badge ${
-                          item.outcome_status ===
-                          "Variance Detected"
-                            ? "variance"
-                            : "success"
-                        }`}
-                      >
-                        {item.outcome_status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      <td className={dVar > 0 ? "negative" : "positive"}>
+                        {dVar > 0 ? "+" : ""}
+                        {dVar} days
+                      </td>
+
+                      <td>
+                        {renderStatusBadge(item.outcome_status)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -340,14 +370,21 @@ function Analytics() {
           <div className="feedback-card">
             <span>Average Cost Variance</span>
 
-            <strong className="negative">
-              +{formatCurrency(
-                Math.abs(analytics.averageCostVariance)
-              )}
+            <strong
+              className={
+                analytics.averageCostVariance > 0
+                  ? "negative"
+                  : analytics.averageCostVariance < 0
+                  ? "positive"
+                  : ""
+              }
+            >
+              {analytics.averageCostVariance > 0 ? "+" : ""}
+              {formatCurrency(analytics.averageCostVariance)}
             </strong>
 
             <p>
-              Average difference between expected and actual cost
+              Average difference between actual and expected cost
               across recorded outcomes.
             </p>
           </div>
@@ -355,8 +392,17 @@ function Analytics() {
           <div className="feedback-card">
             <span>Average Delivery Variance</span>
 
-            <strong className="negative">
-              +{analytics.averageDeliveryVariance.toFixed(1)} days
+            <strong
+              className={
+                analytics.averageDeliveryVariance > 0
+                  ? "negative"
+                  : analytics.averageDeliveryVariance < 0
+                  ? "positive"
+                  : ""
+              }
+            >
+              {analytics.averageDeliveryVariance > 0 ? "+" : ""}
+              {analytics.averageDeliveryVariance.toFixed(1)} days
             </strong>
 
             <p>
@@ -368,20 +414,33 @@ function Analytics() {
           <div className="feedback-card">
             <span>Variance Rate</span>
 
-            <strong>
-              {analytics.total > 0
-                ? (
-                    (analytics.varianceCount /
-                      analytics.total) *
-                    100
-                  ).toFixed(1)
-                : "0.0"}
-              %
+            <strong className={analytics.varianceRate > 0 ? "negative" : ""}>
+              {analytics.varianceRate.toFixed(1)}%
             </strong>
 
             <p>
-              Percentage of recorded decisions that produced a
-              measurable variance.
+              Percentage of recorded decisions that experienced adverse
+              performance variances.
+            </p>
+          </div>
+
+          <div className="feedback-card">
+            <span>Decision Performance ROI</span>
+
+            <strong
+              className={
+                analytics.decisionRoi >= 0
+                  ? "positive"
+                  : "negative"
+              }
+            >
+              {analytics.decisionRoi >= 0 ? "+" : ""}
+              {analytics.decisionRoi.toFixed(1)}%
+            </strong>
+
+            <p>
+              Realized cost savings relative to expected optimization
+              expenditure.
             </p>
           </div>
         </div>
@@ -390,4 +449,4 @@ function Analytics() {
   );
 }
 
-export default Analytics;
+export default Analytics;

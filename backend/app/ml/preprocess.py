@@ -44,6 +44,21 @@ def create_risk_label(row):
         return "Low"
 
 
+def calculate_delay_days(row):
+    """
+    Calculate an engineered target proxy for delay duration (in days).
+
+    Note: This is an engineered proxy target derived from lead time overruns,
+    defect rework delays, and stockout backorder delays to align the raw dataset
+    with the Project 3 requirements specification.
+    """
+    lead_overrun = max(0, row["Lead time"] - 15)
+    defect_delay = row["Defect rates"] * 2.0
+    stockout_delay = max(0, 30 - row["Stock levels"]) / 5.0
+
+    return round(lead_overrun + defect_delay + stockout_delay, 1)
+
+
 def preprocess_data():
     print("Loading raw dataset...")
 
@@ -51,10 +66,11 @@ def preprocess_data():
 
     print(f"Loaded {len(df)} rows and {len(df.columns)} columns.")
 
-    # Create target variable
+    # Create target variables
     df["Risk"] = df.apply(create_risk_label, axis=1)
+    df["Delay_Days"] = df.apply(calculate_delay_days, axis=1)
 
-    # Select useful ML features
+    # Select useful ML features and targets
     selected_columns = [
         "Price",
         "Availability",
@@ -72,6 +88,7 @@ def preprocess_data():
         "Defect rates",
         "Costs",
         "Risk",
+        "Delay_Days",
     ]
 
     processed_df = df[selected_columns].copy()
@@ -86,7 +103,9 @@ def preprocess_data():
     print(f"Processed dataset saved to: {PROCESSED_DATA}")
     print("\nRisk distribution:")
     print(processed_df["Risk"].value_counts())
+    print("\nEngineered Delay_Days summary:")
+    print(processed_df["Delay_Days"].describe())
 
 
 if __name__ == "__main__":
-    preprocess_data()
+    preprocess_data()

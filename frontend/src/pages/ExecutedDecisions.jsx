@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../services/api";
 import "./ExecutedDecisions.css";
 
 function ExecutedDecisions() {
@@ -19,8 +19,6 @@ function ExecutedDecisions() {
 
   const [savingOutcome, setSavingOutcome] = useState(false);
 
-  const API_URL = "http://127.0.0.1:8000";
-
   useEffect(() => {
     loadData();
   }, []);
@@ -32,8 +30,8 @@ function ExecutedDecisions() {
     try {
       const [decisionsResponse, outcomesResponse] =
         await Promise.all([
-          axios.get(`${API_URL}/executed-decisions`),
-          axios.get(`${API_URL}/execution-outcomes`),
+          API.get("/executed-decisions"),
+          API.get("/execution-outcomes"),
         ]);
 
       setDecisions(decisionsResponse.data);
@@ -104,8 +102,8 @@ function ExecutedDecisions() {
       setError("");
       setSuccess("");
 
-      const response = await axios.post(
-        `${API_URL}/execution-outcomes`,
+      const response = await API.post(
+        "/execution-outcomes",
         {
           executed_decision_id: selectedDecision.id,
           actual_cost: Number(actualCost),
@@ -134,7 +132,7 @@ function ExecutedDecisions() {
 
       setError(
         err.response?.data?.detail ||
-          "Unable to record the execution outcome."
+        "Unable to record the execution outcome."
       );
     } finally {
       setSavingOutcome(false);
@@ -151,9 +149,7 @@ function ExecutedDecisions() {
     }
 
     try {
-      await axios.delete(
-        `${API_URL}/executed-decisions/${decisionId}`
-      );
+      await API.delete(`/executed-decisions/${decisionId}`);
 
       setDecisions((current) =>
         current.filter(
@@ -184,7 +180,10 @@ function ExecutedDecisions() {
   };
 
   const formatCurrency = (value) => {
-    return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+    return `$${Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const getRiskClass = (risk) => {

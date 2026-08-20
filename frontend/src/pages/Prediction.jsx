@@ -384,6 +384,40 @@ function Prediction() {
 
             </div>
 
+
+            {result.predicted_delay_days !== undefined && (
+
+              <div className="prediction-result-item">
+
+                <span>
+                  Predicted Delay
+                </span>
+
+                <strong>
+                  {result.predicted_delay_days} days
+                </strong>
+
+              </div>
+
+            )}
+
+
+            {result.disruption_probability !== undefined && (
+
+              <div className="prediction-result-item">
+
+                <span>
+                  Disruption Probability
+                </span>
+
+                <strong>
+                  {result.disruption_probability}%
+                </strong>
+
+              </div>
+
+            )}
+
           </div>
 
 
