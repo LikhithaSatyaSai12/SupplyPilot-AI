@@ -6,6 +6,7 @@ import Recommendations from "../pages/Recommendations";
 import DecisionHistory from "../pages/DecisionHistory";
 import Prescriptions from "../pages/Prescriptions";
 import ExecutedDecisions from "../pages/ExecutedDecisions";
+import ExecutionOutcomes from "../pages/ExecutionOutcomes";
 
 function AppRoutes() {
   return (
@@ -33,6 +34,11 @@ function AppRoutes() {
         <Route
           path="/executed-decisions"
           element={<ExecutedDecisions />}
+        />
+
+        <Route
+          path="/execution-outcomes"
+          element={<ExecutionOutcomes />}
         />
       </Routes>
     </BrowserRouter>
