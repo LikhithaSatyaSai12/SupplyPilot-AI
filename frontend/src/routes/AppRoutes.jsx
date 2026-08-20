@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+
+import Login from "../pages/Login";
+import Register from "../pages/Register";
 
 import Dashboard from "../pages/Dashboard";
 import Prediction from "../pages/Prediction";
@@ -9,20 +12,31 @@ import Prescriptions from "../pages/Prescriptions";
 import ExecutedDecisions from "../pages/ExecutedDecisions";
 import Analytics from "../pages/Analytics";
 
+function ProtectedRoute({ children }) {
+  const isLoggedIn = localStorage.getItem("supplypilot_logged_in");
+
+  return isLoggedIn === "true" ? children : <Navigate to="/login" replace />;
+}
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />}>
-          <Route
-            path="/"
-            element={<Dashboard />}
-          />
+        {/* Authentication */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          <Route
-            path="/prediction"
-            element={<Prediction />}
-          />
+        {/* Protected Application */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<Dashboard />} />
+
+          <Route path="/prediction" element={<Prediction />} />
 
           <Route
             path="/recommendations"
@@ -49,14 +63,14 @@ function AppRoutes() {
             element={<ExecutedDecisions />}
           />
 
-          <Route
-            path="/analytics"
-            element={<Analytics />}
-          />
+          <Route path="/analytics" element={<Analytics />} />
         </Route>
+
+        {/* Unknown URL */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-export default AppRoutes;
+export default AppRoutes;

@@ -1,6 +1,13 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("supplypilot_logged_in");
+    navigate("/login");
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
@@ -27,6 +34,16 @@ function Sidebar() {
           Decision Analytics
         </NavLink>
       </nav>
+
+      <div className="sidebar-footer">
+        <button
+          type="button"
+          className="logout-button"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }
